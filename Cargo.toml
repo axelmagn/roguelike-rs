@@ -1,0 +1,9 @@
+[package]
+name = "roguelike-rs"
+version = "0.1.0"
+authors = ["Axel Magnuson <axelmagn@gmail.com>"]
+
+[dependencies]
+piston = "0.27.0"
+piston2d-graphics = "0.19.0"
+piston_window = "0.61.0"
