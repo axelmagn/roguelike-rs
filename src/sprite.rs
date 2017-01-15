@@ -1,7 +1,7 @@
 use drawable::Drawable;
-use graphics::{self, Graphics, Context, ImageSize};
+use graphics::math::{Scalar, Matrix2d, identity};
 use graphics::types::{Rectangle, SourceRectangle, Color};
-use graphics::math::{Scalar};
+use graphics::{self, Graphics, Context, ImageSize};
 use std::rc::Rc;
 
 
@@ -13,7 +13,7 @@ pub type SpriteParams = graphics::image::Image;
 ///
 /// Sprites do not contain any sub-images.
 #[derive(Clone)]
-pub struct Sprite<T: ImageSize> {
+pub struct Sprite<T> {
     /// source texture
     pub texture: Rc<T>,
 
@@ -21,8 +21,8 @@ pub struct Sprite<T: ImageSize> {
     pub color: Color,
     /// Clipping rectangle over the texture
     pub src_rect: SourceRectangle,
-    /// Target rectangle over the draw context
-    pub tgt_rect: Rectangle,
+    /// Sprite transform within its context
+    pub transform: Matrix2d,
 }
 
 
@@ -49,7 +49,7 @@ impl<T: ImageSize> Sprite<T> {
             texture:    texture,
             color:      color,
             src_rect:   src_rect,
-            tgt_rect:   tgt_rect,
+            transform:  identity(),
         }
     }
 
@@ -81,10 +81,18 @@ impl<G: Graphics> Drawable<G> for Sprite<G::Texture> {
         self.sprite_params().draw(
             texture,
             &context.draw_state,
-            context.transform,
+            context.transform.append_transform(self.transform),
             graphics);
     }
 }
+
+
+impl<T> Positioned for Sprite<T> {
+    fn pos(&self) -> Vec2d {
+        return [
+    }
+}
+
 
 #[cfg(test)]
 pub mod tests {
