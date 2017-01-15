@@ -2,30 +2,34 @@ extern crate piston_window;
 extern crate ai_behavior;
 extern crate image;
 extern crate find_folder;
-extern crate sprite;
+extern crate graphics;
+extern crate gfx_graphics;
+extern crate glutin_window;
+extern crate gfx_device_gl;
+extern crate gfx_core;
 
-use std::rc::Rc;
+mod drawable;
+mod sprite;
+
+use drawable::Drawable;
+use graphics::image::Image;
+use graphics::rectangle::square;
+use image::{GenericImage};
 use piston_window::{
-    OpenGL,
-    PistonWindow,
-    WindowSettings,
-    clear,
-    Texture,
-    TextureSettings,
+    Button,
     Event,
+    Flip,
     Input,
     Key,
-    Button,
+    PistonWindow,
+    Texture,
+    TextureSettings,
+    WindowSettings,
+    clear,
 };
-use image::GenericImage;
-use sprite::{
-    Scene,
-    Sprite,
-    Ease,
-    EaseFunction,
-    MoveBy,
-};
-use ai_behavior::Action;
+use sprite::{Sprite, SpriteParams};
+use std::rc::Rc;
+
 
 fn main() {
     let (width, height) = (800, 600);
@@ -34,71 +38,40 @@ fn main() {
     let assets = find_folder::Search::ParentsThenKids(3, 3)
         .for_folder("assets")
         .unwrap();
-    let mut spritesheet = image::open(assets.join("roguelikeChar_transparent.png"))
-        .unwrap()
-        .to_rgba();
 
     // set up the window
-    let opengl = OpenGL::V3_2;
     let mut window: PistonWindow =
         WindowSettings::new("roguelike", (width, height))
         .exit_on_esc(true)
-        .opengl(opengl)
         .build()
         .unwrap();
 
-    // set up character sprite
-    let char_img = {
-        let tile_size = 16;
-        let margin = 1;
-        let (x, y, w, h) = (0, 6 * (tile_size + margin), tile_size, tile_size);
-        spritesheet.sub_image(x, y, w, h).to_image()
-    };
-    let char_tex = Rc::new(Texture::from_image(
+    let char_spritesheet = Texture::from_path(
             &mut window.factory,
-            &char_img,
-            &TextureSettings::new()
-        ).unwrap());
-    let mut char_sprite = Sprite::from_texture(char_tex.clone());
-    char_sprite.set_position(width as f64 / 2.0, height as f64 / 2.0);
+            assets.join("roguelikeChar_transparent.png"),
+            Flip::None,
+            &TextureSettings::new())
+        .unwrap();
+    let char_spritesheet = Rc::new(char_spritesheet);
 
-    // set up scene
-    let mut scene = Scene::new();
-    let id = scene.add_child(char_sprite);
+    let mut char_sprite = Sprite::from(
+            char_spritesheet.clone(),
+            SpriteParams::new()
+                .src_rect([0.0, 5.0 * 17.0, 16.0, 16.0])
+                .rect([16.0 * 10.0, 16.0 * 10.0, 16.0, 16.0]),
+        );
 
+    let up_arrow    = Event::Input(Input::Press(Button::Keyboard(Key::Up)));
+    let down_arrow  = Event::Input(Input::Press(Button::Keyboard(Key::Down)));
+    let left_arrow  = Event::Input(Input::Press(Button::Keyboard(Key::Left)));
+    let right_arrow = Event::Input(Input::Press(Button::Keyboard(Key::Right)));
 
     while let Some(e) = window.next() {
-        scene.event(&e);
-
         match e {
-            Event::Input(Input::Press(Button::Keyboard(Key::Up))) => {
-                let (dx, dy) = (0.0, -16.0);
-                let move_dir = Action(Ease(EaseFunction::CubicOut, Box::new(MoveBy(1.0, dx, dy))));
-                scene.run(id, &move_dir);
-            }
-
-            Event::Input(Input::Press(Button::Keyboard(Key::Down))) => {
-                let (dx, dy) = (0.0, 16.0);
-                let move_dir = Action(Ease(EaseFunction::CubicOut, Box::new(MoveBy(1.0, dx, dy))));
-                scene.run(id, &move_dir);
-            }
-
-            Event::Input(Input::Press(Button::Keyboard(Key::Left))) => {
-                let (dx, dy) = (-16.0, 0.0);
-                let move_dir = Action(Ease(EaseFunction::CubicOut, Box::new(MoveBy(1.0, dx, dy))));
-                scene.run(id, &move_dir);
-            }
-
-            Event::Input(Input::Press(Button::Keyboard(Key::Right))) => {
-                let (dx, dy) = (16.0, 0.0);
-                let move_dir = Action(Ease(EaseFunction::CubicOut, Box::new(MoveBy(1.0, dx, dy))));
-                scene.run(id, &move_dir);
-            }
-
             Event::Render(_) => {
                 window.draw_2d(&e, |c, g| {
                     clear([0.5, 0.5, 1.0, 1.0], g);
-                    scene.draw(c.transform, g);
+                    char_sprite.draw(c, g);
                 });
             }
             _ => {}
